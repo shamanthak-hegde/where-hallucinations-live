@@ -480,3 +480,10 @@
 @media screen and (max-width: 640px) {
   .venue-badge { font-size: 1.2rem; }
 }
+
+.bibtex-note {
+  font-size: 0.88rem;
+  color: #6b6b6b;
+  max-width: 60ch;
+  margin-bottom: 0.9rem !important;
+}
