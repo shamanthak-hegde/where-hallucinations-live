@@ -91,21 +91,24 @@
 </section>
 
 
+
 <section class="hero teaser">
   <div class="container is-max-widescreen">
     <div class="hero-body">
       <img class="fig" src="./static/images/teaser.png"
-           alt="Left: the 19 instrumented models plotted as gate A1 initiation against gate A2 attention mass, with the passing models in one quadrant and Emu3-Chat and VILA-U-MLP inside that quadrant but rejected on the third gate. Right: a COCO photograph of a person eating a banana, with VILA-U's baseline caption describing a slice of cheese pizza four times, and its caption under L0 ablation correctly describing a banana.">
+           alt="Left: the 19 models with measurable gate values, plotted by gate A1 initiation against gate A2 attention mass. The passing models sit in one corner. Emu3-Chat and VILA-U-MLP sit there too but are rejected by the third gate. Right: a COCO photo of a person eating a banana. VILA-U's normal caption describes a slice of cheese pizza four times. With layer 0 switched off, it describes the banana.">
       <p class="teaser-caption">
-        VQ-tokenized vision-language models share an early-layer attention routing
-        circuit. A three-gate diagnostic finds it in 10 of 25 models, a single-variable
-        projector swap installs it, and zeroing it is the only intervention we tested
-        that reduces object hallucination in open-ended captioning. Both panels are
-        explorable further down this page.
+        Models that turn an image into discrete codes share a problem in their first
+        attention layer. We built a three-part test that finds it in 10 of the 25 models
+        we looked at, and we can put the problem into a healthy model by swapping one
+        component. Switching that layer off is the only fix we tried that cuts made-up
+        objects out of long captions. Both panels are explorable further down the page.
       </p>
     </div>
   </div>
 </section>
+
+
 <section class="section">
   <div class="container is-max-desktop">
     <div class="columns is-centered has-text-centered">
@@ -128,9 +131,9 @@
             source of the pathological signal; the routing pathway that carries it is one
             that the backbone already provides. Against tuned baselines, DoLA wins on
             binary calibration, but <i>only L<sub>0</sub> ablation reduces object
-            hallucination in open-ended generation</i> (CHAIR<sub>i</sub> -31% relative;
-            tuned DoLA and VCD leave it unchanged or worsen it). These results recast
-            object hallucination in unified VQ VLMs as a property of architecture and
+            hallucination in open-ended generation</i> (CHAIRi -31% relative; tuned DoLA
+            and VCD leave it unchanged or worsen it). These results recast object
+            hallucination in unified VQ VLMs as a property of architecture and
             pretraining, and yield a targeted intervention that mechanism-agnostic
             decoding cannot replicate.
           </p>
@@ -143,21 +146,23 @@
 
 <section class="section" style="padding-top:0;">
   <div class="container is-max-desktop">
-    <h2 class="title is-3">Contributions</h2>
+    <h2 class="title is-3">What we found</h2>
     <div class="content has-text-justified">
       <ul>
-        <li>A cross-architecture L<sub>0</sub> routing circuit present in five natural
-          unified-VQ VLMs across three LLM families, absent in continuous-projector
-          models, and structurally validated on a held-out model not used to calibrate
-          the diagnostic.</li>
-        <li>Causal identification of the VQ bottleneck via single-variable construction
-          with a matched-compute MLP control, and a training-time asymmetry showing the
-          circuit is encoded in LLM backbone weights.</li>
-        <li>A three-gate diagnostic chain with an architecturally motivated (not
-          threshold-fit) two-tier criterion that discriminates twenty-five models with
-          mechanistically distinct positive and negative signatures.</li>
-        <li>An intervention that loses to tuned VCD and DoLA on binary calibration but
-          uniquely reduces object hallucination in open-ended generation.</li>
+        <li>One attention layer, L<sub>0</sub>, routes image information the same way in
+          five different VQ models built on three different language models. Models that
+          feed images in as continuous features do not do this. We also ran the test on a
+          model we had never used to set the thresholds, and it came out as predicted.</li>
+        <li>We can install the problem on purpose. Take a healthy model, freeze
+          everything, and swap only the part that converts the image. Swap in one that
+          quantizes and the problem appears. Train the same part without quantizing, on
+          the same data for the same number of steps, and it does not.</li>
+        <li>The test uses three gates in a row. The threshold rule comes from how the
+          models are built, not from fitting the answers we wanted. It sorts all 25
+          models, and the ones it rejects fail for different reasons.</li>
+        <li>Switching L<sub>0</sub> off loses to tuned VCD and DoLA on yes/no benchmarks.
+          It is still the only thing we tried that cuts made-up objects when the model
+          writes a full caption.</li>
       </ul>
     </div>
   </div>
@@ -166,31 +171,33 @@
 
 <section class="section" style="padding-top:0;">
   <div class="container is-max-widescreen">
-    <h2 class="title is-3">Method</h2>
+    <h2 class="title is-3">How the test works</h2>
     <img class="fig" src="./static/images/Methods.png"
-         alt="Methodology overview. Clean and corrupted image pairs pass through the transformer; residual divergence and early-layer attention mass feed a three-gate decision; a single-variable projector swap provides the causal control; L0 ablation is evaluated on binary benchmarks and on open-ended captioning.">
+         alt="Overview. Clean and corrupted image pairs go through the model. Residual divergence and early attention mass feed a three-gate decision. Swapping the projector gives the causal control. Switching off layer 0 is then evaluated on yes/no benchmarks and on captioning.">
     <div class="content has-text-justified" style="margin-top:1.25rem;">
       <p>
-        We instantiate activation patching with two corruption types, Gaussian noise on
-        visual embeddings and image-swap corruption, over a fixed set of 500 paired
-        records (300 NaturalBench image-swap pairs and 200 POPE Gaussian-noise pairs).
-        For each record we cache activations on the clean and corrupted runs, then re-run
-        the corrupted input while patching in the clean activation at one
-        (token-category, layer) site at a time. The restoration score
-        <span class="mono">R = (logit<sub>patch</sub> - logit<sub>corrupt</sub>) /
-        (logit<sub>clean</sub> - logit<sub>corrupt</sub>)</span> is read out on the answer
-        token.
+        We damage the image and then look for where the damage shows up inside the model.
+        For each of 500 paired records we run the model twice, once on the clean image and
+        once on a damaged one, and save what happens at every layer. Then we run the
+        damaged version again, but copy one piece of the clean run back in at a time, and
+        measure how much of the right answer comes back. Records come in pairs, one
+        expecting yes and one expecting no, which is what lets us put error bars on
+        everything.
       </p>
       <p>
-        Visual-embedding norms vary by more than an order of magnitude across the cohort,
-        so a fixed noise scale would over-perturb some models and under-perturb others.
-        For each model we sweep sigma on a logarithmic grid and take the value whose mean
-        per-token clean-to-noisy cosine similarity is closest to 0.5. This uses only input
-        embeddings, not predictions or labels. Sigma then sorts the cohort into three
-        classes: projector-amplified VQ, continuous-projector, and unified-vocab VQ, where
-        visual tokens enter the LM token-embedding table at text-token scale. Gate
-        A2's two-tier threshold is inherited from that classification rather
-        than fit to the cohort labels.
+        Models scale their image features very differently, by more than a factor of ten.
+        One fixed amount of noise would barely bother some models and destroy others. So
+        for each model we tune the noise until the damaged features are about half as
+        similar to the clean ones. We do this using only the input features, never the
+        model's answers, so nothing about the outcome leaks into the setup.
+      </p>
+      <p>
+        How much noise a model needs sorts the group into three kinds: ones whose
+        projector blows up the scale of image features, ones that feed images in as
+        continuous features, and ones that put image tokens in the same table as text
+        tokens at text scale. Gate A2 uses two different thresholds, and which one a model
+        gets comes from that grouping. We fixed the grouping before looking at any
+        results.
       </p>
     </div>
   </div>
@@ -199,34 +206,34 @@
 
 <section class="section" style="padding-top:0;">
   <div class="container is-max-desktop">
-    <h2 class="title is-3">Gate A1 is conjunctive</h2>
+    <h2 class="title is-3">Gate A1 asks two questions</h2>
     <div class="content has-text-justified">
       <p>
-        The candidate circuit predicts two things: a routing event concentrated in the
-        early layers, and persistence of the resulting signal rather than its dissipation.
-        A1 therefore has two halves.
-        <b>Initiation</b> requires the relative divergence between clean and corrupted
-        residual streams to reach 0.4 within layers [0,&nbsp;8), the first quarter of the
-        stack. <b>Propagation</b> requires it to reach 0.4 again somewhere at
-        layer&nbsp;12 or later. The two ranges are disjoint and separated by a four-layer
-        buffer, so neither can be satisfied by the decaying shoulder of the other. A model
-        passes A1 only if both hold.
+        We measure how far the model's internal state drifts away from the clean run,
+        layer by layer. Then we ask two things about that curve.
       </p>
       <p>
-        The two failure modes are populated by different models. Failing initiation means
-        the model does not route visual information through its early layers, which is
-        where UniTok, Show-o, SEED-LLaMA, the matched-compute MLP control and FSQ v2 land.
-        Failing propagation means the early event is causally inert: Emu3-Chat is the one
-        model in the cohort with a real initiation event, 0.435 at L<sub>0</sub>, that
-        decays to a downstream maximum of 0.215.
+        <b>Does it start?</b> The drift has to reach 0.4 somewhere in the first eight
+        layers. That is where we think the routing happens.
+        <b>Does it carry?</b> It has to reach 0.4 again at layer 12 or later. If it does
+        not, the early event faded out and never reached the answer.
+      </p>
+      <p>
+        The two ranges do not touch. There are four layers between them, so one bump
+        cannot count for both. A model passes A1 only if both are true.
+      </p>
+      <p>
+        Models fail these in different ways. UniTok, Show-o, SEED-LLaMA, the matched MLP
+        control and FSQ v2 fail the first question, because not much happens early.
+        Emu3-Chat is the only model that fails the second one. It has a real early event,
+        0.435 at layer 0, but by the second half of the network it is down to 0.215.
       </p>
     </div>
     <img class="fig fig-narrow" src="./static/images/a1_gate.png"
-         alt="Relative divergence per layer for VILA-U and the matched-compute LLaVA-MLP control, with the initiation window and the propagation range shaded and the 0.4 threshold marked.">
+         alt="Drift per layer for VILA-U and the matched MLP control, with the two scored ranges shaded and the 0.4 line marked.">
     <p class="demo-note has-text-centered">
-      VILA-U clears 0.4 in both ranges. The matched-compute MLP control, trained on the
-      same data for the same 2000 steps, clears neither (0.206 initiation, 0.106
-      propagation).
+      VILA-U clears 0.4 in both ranges. The MLP control, trained on the same data for the
+      same 2000 steps, clears neither, at 0.206 and 0.106.
     </p>
   </div>
 </section>
@@ -234,13 +241,12 @@
 
 <section class="section" style="padding-top:0;">
   <div class="container is-max-widescreen demo">
-    <h2 class="title is-3">Every model we measured</h2>
+    <h2 class="title is-3">Every model we tested</h2>
     <p class="demo-hint">
       <span id="gate-counts"></span>
-      Each row shows its three gate outcomes as dots (A1, A2,
-      A3). Selecting a model shows the measured divergence curve behind its
-      A1 numbers and the head-by-layer routing map behind its A2
-      number, both read from the same arrays the paper's tables were computed from.
+      The three dots on each row are its results for A1, A2 and A3. Click a model to see
+      the drift curve behind its A1 numbers and the attention map behind its A2 number.
+      Both come from the same arrays we used for the paper's tables.
     </p>
 
     <div class="gate-wrap">
@@ -249,24 +255,30 @@
     </div>
 
     <div class="content has-text-justified" style="margin-top:1.5rem;">
-      <p><b>Why the gates are applied as a chain.</b> Individually each one admits
-      confounds. A2 alone is passed by a model that routes visual tokens
-      through L<sub>0</sub> without driving a pathological signal along that route: the
-      matched-compute MLP control has L<sub>0</sub> mass 25.52, because a healthy
-      Vicuna-7B already routes early visual attention there, yet it fails A1
-      and has a null behavioral effect. UniTok and Emu3 clear the A2 mass
-      threshold and fail A1 from opposite directions. Qwen-VQ makes the
-      converse point, passing A1 and A3 with a severely collapsed
-      codebook and failing only the mass screen. Janus-Pro passes A1 because
-      any model that grounds strongly propagates visual corruption forward, quantized or
-      not.</p>
-      <p><b>Threshold sensitivity.</b> Sweeping one gate at a time over the nineteen
-      models carrying instrumented gate values, the partition is invariant to
-      A3 across 60 to 95% and to A2 across 8 to 15, first changing
-      at 18 when VILA-U, the lowest-mass positive at 17.50, drops out. A1 is
-      bound on both sides: lowering it to 0.35 admits FSQ v2 at 0.379 and 0.30 admits
-      UniTok at 0.347, while raising it to 0.45 drops FSQ v1. That upper bound is
-      numerically tight, since FSQ v1's binding value is 0.449997.</p>
+      <p><b>Why we need all three gates.</b> Each one on its own can be fooled.</p>
+      <p>
+        A model can route image tokens through L<sub>0</sub> without anything harmful
+        going down that route, so A2 alone is not enough. The matched MLP control does
+        exactly this. Its L<sub>0</sub> mass is 25.52, because a healthy Vicuna-7B already
+        sends early image attention there. But it fails A1, and switching L<sub>0</sub>
+        off does nothing to it.
+      </p>
+      <p>
+        A1 alone is not enough either. Any model that looks hard at the image will carry
+        image damage forward. Janus-Pro does, and it does not quantize images at all.
+      </p>
+      <p>
+        Nor is A3. Qwen-VQ has a badly collapsed codebook and passes both A1 and A3, and
+        it still has no circuit. It fails on attention mass alone. UniTok and Emu3 are the
+        mirror case: both clear the A2 threshold and fail A1, from opposite sides.
+      </p>
+      <p><b>How much do the thresholds matter?</b> We moved one gate at a time across the
+      19 models with measurable values. A3 can sit anywhere from 60% to 95% without
+      changing a single verdict. A2 can sit anywhere from 8 to 15, and first changes at
+      18, where VILA-U drops out because it has the lowest mass of any passing model at
+      17.50. A1 is pinned from both sides. Lower it to 0.35 and FSQ v2 gets in at 0.379.
+      Lower it to 0.30 and UniTok gets in at 0.347. Raise it to 0.45 and FSQ v1 drops out,
+      and its value is 0.449997, so that edge is very close.</p>
     </div>
   </div>
 </section>
@@ -274,54 +286,54 @@
 
 <section class="section" style="padding-top:0;">
   <div class="container is-max-widescreen">
-    <h2 class="title is-3">Induction and the matched-compute control</h2>
+    <h2 class="title is-3">Putting the problem in, and trying to take it out</h2>
 
     <img class="fig" src="./static/images/matched_compute_3panel.png"
-         alt="Three panels comparing a VQ+Linear projector against a matched-compute MLP projector: A1 initiation and propagation against the 0.4 threshold, L0 attention mass against the threshold of 15, and POPE yes-rate before and after L0 ablation.">
+         alt="Three panels comparing a quantizing projector against a matched MLP projector: both halves of gate A1 against the 0.4 line, layer 0 attention mass against the threshold of 15, and POPE yes-rate before and after switching layer 0 off.">
     <div class="content has-text-justified" style="margin-top:1.25rem;">
       <p>
-        Starting from LLaVA-1.6 with Vicuna-7B and CLIP frozen, we train two projectors
-        that differ in exactly one component: one quantizes through a codebook, one does
-        not. Same 50k CC3M subset, same 2000 steps, same hyperparameters. Only the VQ
-        configuration installs the circuit. Panel (b) is the part that matters for the
-        chain design: both configurations have essentially the same L<sub>0</sub>
-        attention mass, so the routing pathway is already in the backbone. What VQ
-        pretraining adds is the signal that travels down it, plus the divergence that
-        carries that signal forward.
+        We start from LLaVA-1.6 with the language model and image encoder frozen, and
+        train two versions of the part that converts the image. One quantizes through a
+        codebook, one does not. Same data, same 2000 steps, same settings. Only the
+        quantizing one installs the circuit.
       </p>
       <p>
-        Reversal does not work at the same budget. Training a continuous SigLIP MLP
-        adapter on top of VILA-U's VQ-pretrained Vicuna-7B for 2000 steps leaves
-        A<sub>1</sub> passing (0.672 initiation, 0.647 propagation), raises L<sub>0</sub>
-        mass from 17.50 to 20.53, and raises the POPE yes-rate from 81% to 99.2%. It is
-        recorded as a chain FAIL at A<sub>3</sub> because the continuous adapter leaves no
-        codebook to probe; the structural gates it does pass are what carry the reversal
-        argument.
+        The middle panel is the one that matters. Both versions end up with about the same
+        attention mass at L<sub>0</sub>. So the route was already there in the backbone
+        before we changed anything. What quantizing adds is the bad signal that travels
+        down that route, plus the drift that carries it forward.
+      </p>
+      <p>
+        Going the other way does not work in the same budget. We trained a normal
+        continuous adapter on top of VILA-U, which was already pretrained with
+        quantization. After the same 2000 steps A1 still passes, L<sub>0</sub> mass has
+        gone up rather than down, from 17.50 to 20.53, and the POPE yes-rate has gone up
+        from 81% to 99.2%. We record it as a fail on A3, since a continuous adapter leaves
+        no codebook to test, but the gates it does pass are what make the point.
       </p>
     </div>
 
     <img class="fig" src="./static/images/codebook_polarity_bars.png" style="margin-top:1.5rem;"
-         alt="Panel a: POPE yes-rate before and after L0 ablation for the four capacity settings and the two FSQ configurations. Panel b: codebook mean yes-rate against baseline POPE yes-rate for VILA-U, Liquid and Chameleon.">
+         alt="Left: POPE yes-rate before and after switching layer 0 off, for four codebook sizes and two FSQ versions. Right: codebook mean yes-rate against baseline POPE yes-rate for VILA-U, Liquid and Chameleon.">
     <div class="content has-text-justified" style="margin-top:1.25rem;">
       <p>
-        Capacity does not determine polarity. All four K values collapse to roughly 80 to
-        160 active codes regardless of nominal capacity, and their polarities still
-        differ. K = 4096 is the open anomaly: a per-entry bias probe shows its codebook is
-        strongly YES-biased at 0.836, statistically indistinguishable from K = 16384
-        (0.864) and K = 65536 (0.870), yet L<sub>0</sub> ablation moves it in the opposite
-        direction. The anomaly is in the sign of the intervention, not in the codebook.
+        Codebook size does not decide which way the circuit pushes. All four sizes end up
+        using only about 80 to 160 codes no matter what we set, and they still push in
+        different directions. K = 4096 is the one we cannot explain. We checked its
+        codebook entry by entry and it is strongly yes-biased at 0.836, which is
+        essentially the same as K = 16384 at 0.864 and K = 65536 at 0.870. Switching
+        L<sub>0</sub> off still moves it the opposite way. The oddity is in what the
+        intervention does, not in the codebook.
       </p>
       <p>
-        Collapse is not the operative factor either. The FSQ v1 configuration cannot
-        collapse by construction and installs the circuit anyway, with inverted polarity.
-        FSQ v2 reproduces that inversion behaviorally (yes-rate +53.3 points, AMBER -19.8)
-        but installs no gate-detectable early event: its initiation value is 0.379, and
-        divergence first clears 0.4 only at L<sub>14</sub>. The two lattices agree on the behavioral
-        consequence and differ on the mechanism, so the polarity inversion cannot be
-        attributed to the early circuit alone. Together with Qwen-VQ, which collapses
-        without installing the circuit, this leaves discretization through a codebook as
-        the operative factor and the surviving codes' training distribution as what
-        governs the sign.
+        A collapsed codebook is not the cause either. FSQ v1 cannot collapse by design and
+        gets the circuit anyway, with the direction flipped. FSQ v2 flips the behaviour the
+        same way, yes-rate up 53.3 points and AMBER down 19.8, but has no early event we
+        can detect: 0.379, with the drift first clearing 0.4 only at layer 14. So the two
+        versions agree on what the model does and disagree on why. Put that next to
+        Qwen-VQ, which collapses without getting the circuit, and what is left is the
+        quantization step itself. What the surviving codes learned during training decides
+        which way it pushes.
       </p>
     </div>
   </div>
@@ -330,57 +342,57 @@
 
 <section class="section" style="padding-top:0;">
   <div class="container is-max-widescreen">
-    <h2 class="title is-3">Binary versus generative</h2>
+    <h2 class="title is-3">Yes/no answers and full captions disagree</h2>
 
     <div class="columns is-vcentered">
       <div class="column is-half">
         <img class="fig" src="./static/images/binary_benchmarks.png"
-             alt="POPE and AMBER accuracy for baseline, L0 ablation and tuned DoLA. Tuned DoLA is highest on both.">
-        <p class="demo-note has-text-centered">Binary benchmarks. Tuned DoLA wins.</p>
+             alt="POPE and AMBER accuracy for the baseline, for switching layer 0 off, and for tuned DoLA. Tuned DoLA is highest on both.">
+        <p class="demo-note has-text-centered">Yes/no benchmarks. Tuned DoLA wins.</p>
       </div>
       <div class="column is-half">
         <img class="fig" src="./static/images/generation_chairi.png"
-             alt="CHAIRi with image-level confidence intervals for baseline, tuned VCD, tuned DoLA and L0 ablation. Only L0 ablation falls below baseline.">
+             alt="CHAIRi with per-image error bars for the baseline, tuned VCD, tuned DoLA and switching layer 0 off. Only switching layer 0 off goes below the baseline.">
         <p class="demo-note has-text-centered">
-          Open-ended captioning. Only L<sub>0</sub> ablation falls below baseline.
+          Full captions. Only switching L<sub>0</sub> off gets below the baseline.
         </p>
       </div>
     </div>
 
     <div class="content has-text-justified">
       <p>
-        We swept VCD over 16 configurations and DoLA over 20 and report the best
-        configuration per benchmark. On POPE and AMBER, tuned DoLA reaches 0.794 and
-        0.795, above every mechanism-targeted intervention we tried. On a single-token
-        forced choice a tuned decoding-time logit fix can match or beat ablation.
+        We tuned VCD over 16 settings and DoLA over 20, and report the best one for each
+        benchmark. On POPE and AMBER, tuned DoLA reaches 0.794 and 0.795, which beats
+        everything we tried. When the model only has to say yes or no, a tuned decoding
+        fix can match or beat switching a layer off.
       </p>
       <p>
-        On CHAIR the ranking reverses. Only L<sub>0</sub> ablation reduces
-        CHAIR<sub>i</sub>, from 10.3% to 7.1%. This is not an artifact of shorter
-        captions: truncating each baseline caption to its paired ablated length lowers
-        baseline CHAIR<sub>i</sub> only to 9.53, leaving 2.40 points attributable to the
-        intervention. The effect concentrates where hallucination actually happens.
-        Baseline hallucination count correlates -0.383 with the change under ablation, and
-        images with at least two baseline hallucinations lose 1.59 hallucinated objects on
-        average while the rest are unchanged. By category, total hallucinated mentions
-        fall from 310 to 192, with 36 categories improving, 11 worsening and 31
-        unchanged.
+        When the model writes a full caption, the order flips. Only switching
+        L<sub>0</sub> off lowers CHAIRi, from 10.3% to 7.1%. This is not just captions
+        getting shorter. If we cut each baseline caption down to the length of its
+        ablated version, CHAIRi only falls to 9.53, which leaves 2.40 points that come
+        from the intervention itself.
       </p>
       <p>
-        Partial doses do not transfer between the two regimes. Scaling the L<sub>0</sub>
-        attention output by alpha rather than zeroing it gives +8.67, +8.17 and +12.30
-        points on POPE at alpha = 0.25, 0.50 and 0.75, so a partial dose beats full
-        ablation on the forced choice. Under the same sweep, only full ablation lowers
-        CHAIR<sub>i</sub> below baseline; every partial dose raises per-object
-        hallucination and lowers recall, shortening captions rather than grounding them.
+        The effect lands where the problem is. Images the baseline hallucinates on more
+        improve more. Images with at least two made-up objects lose 1.59 of them on
+        average, and the rest are unchanged. Counting by object category, made-up mentions
+        fall from 310 to 192: 36 categories get better, 11 get worse, 31 stay the same.
       </p>
       <p>
-        On VILA-U itself, the model that survives the sanity criterion cleanly,
-        L<sub>0</sub> ablation gives +4.23 on POPE and +16.9 on AMBER; L<sub>1</sub>
-        ablation, targeting the downstream writer, gives +11.60 and +23.37; VTI at
-        alpha = 0.005 gives the largest AMBER effect at +30.23. The specificity is sharp
-        in the other direction too. The same L<sub>0</sub> ablation is null on LLaVA-1.6
-        (-0.7 on POPE) and catastrophic on Qwen2.5-VL (-34.3 on POPE, -20.1 on AMBER).
+        A partial dose does not carry across. Scaling the L<sub>0</sub> output down
+        instead of zeroing it gives +8.67, +8.17 and +12.30 points on POPE at 0.25, 0.50
+        and 0.75, so a partial dose beats a full one on yes/no. On captions, only the full
+        version gets below the baseline. Every partial dose makes per-object hallucination
+        worse and recall lower. It shortens the caption without grounding it.
+      </p>
+      <p>
+        On VILA-U, switching L<sub>0</sub> off gives +4.23 on POPE and +16.9 on AMBER.
+        Switching off L<sub>1</sub>, the layer that writes downstream, gives +11.60 and
+        +23.37. VTI gives the largest AMBER effect at +30.23. The same L<sub>0</sub>
+        ablation does nothing to LLaVA-1.6, at -0.7 on POPE, and wrecks Qwen2.5-VL, at
+        -34.3 on POPE and -20.1 on AMBER. Getting opposite results on different
+        architectures is hard to explain unless the mechanism is real.
       </p>
     </div>
   </div>
@@ -389,22 +401,22 @@
 
 <section class="section" style="padding-top:0;">
   <div class="container is-max-widescreen demo">
-    <h2 class="title is-3">Captions</h2>
+    <h2 class="title is-3">Read the captions</h2>
     <p class="demo-hint">
-      All 500 COCO val2014 images from the CHAIR evaluation, with VILA-U's caption under
-      each condition. COCO object mentions are highlighted:
-      <span class="tok-halluc">hallucinated</span> if the object is not in the
-      ground-truth set, <span class="tok-correct">grounded</span> if it is. Hover a
-      highlight for the COCO category it maps to. The aggregate row below is recomputed
-      from these caption files and reproduces the paper's CHAIR table.
+      All 500 COCO images from the CHAIR run, with VILA-U's caption under each setting. We
+      mark every COCO object a caption names:
+      <span class="tok-halluc">red</span> if the object is not really in the image,
+      <span class="tok-correct">green</span> if it is. Hover a mark to see the category it
+      maps to. The table below is recomputed from these caption files and matches the
+      paper.
     </p>
 
     <table class="chair-summary" id="chair-summary">
       <thead>
         <tr>
-          <th>Condition</th>
-          <th>CHAIR<sub>s</sub></th>
-          <th>CHAIR<sub>i</sub></th>
+          <th>Setting</th>
+          <th>CHAIRs</th>
+          <th>CHAIRi</th>
           <th>Recall</th>
           <th>Avg. length</th>
         </tr>
@@ -423,21 +435,20 @@
     <div class="chair-card" id="chair-card"></div>
 
     <div class="chair-legend">
-      <span><span class="tok-halluc">hallucinated object</span></span>
-      <span><span class="tok-correct">grounded object</span></span>
-      <span><span class="pill pill-warn">looping</span> = caption repeats trigrams</span>
+      <span><span class="tok-halluc">made-up object</span></span>
+      <span><span class="tok-correct">object that is really there</span></span>
+      <span><span class="pill pill-warn">looping</span> = the caption repeats itself</span>
     </div>
 
     <div class="content has-text-justified" style="margin-top:1.25rem;">
       <p class="demo-note">
-        The filters include the cases that do not favor the method. L<sub>0</sub> ablation
-        loops on 62 of the 500 images and shortens captions from 158 tokens to 78, trading
-        recall (58.5% to 51.6%) for the CHAIR<sub>i</sub> reduction; tuned VCD loops on
-        130. The looping flag is our own repeated-trigram measure, not a CHAIR metric.
-        This kind of failure is why every intervention in the paper is paired with a
-        question-conditional sanity criterion, and why Liquid and Anole, whose
-        L<sub>0</sub> ablation collapses them into degenerate emitters, are used as
-        gate-level evidence only.
+        The filters include the cases that do not make the method look good. Switching
+        L<sub>0</sub> off makes the model loop on 62 of the 500 images, and captions get
+        shorter, from 158 tokens to 78. Recall drops from 58.5% to 51.6%. Tuned VCD loops
+        on 130. The looping flag is our own check for repeated phrases, not a CHAIR
+        number. This kind of failure is why every intervention in the paper comes with a
+        sanity check, and why Liquid and Anole count as evidence for the gates only:
+        switching L<sub>0</sub> off makes them stop answering properly.
       </p>
     </div>
   </div>
@@ -448,7 +459,8 @@
   <div class="container is-max-desktop content">
     <h2 class="title is-3">BibTeX</h2>
     <p class="bibtex-note">
-      Coming soon!
+      Citation to follow once the arXiv preprint is posted, and again once the EMNLP
+      proceedings appear.
     </p>
     <!-- Paste the arXiv entry here when the preprint is up, then replace it with the
          ACL Anthology entry at publication:
@@ -464,11 +476,11 @@
       <div class="column is-8">
         <div class="content">
           <p style="font-size:0.85rem;">
-            The two interactive panels are rendered from JSON precomputed from the
-            experiment artifacts. The A1 numbers shown per model are recomputed
-            from the same per-layer arrays the curves are drawn from and are checked
-            against the paper's cohort table at build time; the CHAIR aggregates are
-            recomputed from the caption files and reproduce the paper's table.
+            The two panels you can click through are drawn from data files we build
+            straight from the experiment outputs. The A1 numbers next to each model are
+            recomputed from the same per-layer arrays the curves are drawn from, and the
+            build stops if they disagree with the paper. The CHAIR table is recomputed
+            from the caption files and matches the paper exactly.
           </p>
           <p style="font-size:0.85rem;">
             This website is built on the

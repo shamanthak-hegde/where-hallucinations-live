@@ -29,16 +29,16 @@
   function statusWord(v) {
     if (v === true) return 'pass';
     if (v === false) return 'fail';
-    if (v === 'waived') return 'waived';
+    if (v === 'waived') return 'not applicable';
     return 'not measured';
   }
 
   /* =================================================== gate explorer ==== */
 
   var GROUPS = [
-    ['pass_natural', 'Natural VQ models that pass'],
-    ['pass_induced', 'Induced models that pass'],
-    ['fail', 'Rejected by the chain']
+    ['pass_natural', 'Real VQ models that pass'],
+    ['pass_induced', 'Models we built that pass'],
+    ['fail', 'Rejected']
   ];
 
   /* Per-layer A1 divergence, with the two scored ranges shaded. */
@@ -141,8 +141,8 @@
 
   function behaviorLine(b, name) {
     if (!b) return null;
-    return name + ' ' + b.base.toFixed(1) + '% base, accuracy ' + b.d_acc +
-      ' pp, yes-rate ' + b.d_yr + ' pp';
+    return name + ': ' + b.base.toFixed(1) + '% to start, accuracy ' + b.d_acc +
+      ' points, yes-rate ' + b.d_yr + ' points';
   }
 
   function renderGateDetail(m, t, host) {
@@ -150,7 +150,7 @@
 
     host.appendChild(el('h3', null, m.name));
     var meta = el('div', 'gate-meta');
-    [m.cls, m.backbone, 'sigma ' + m.sigma + ' (cos ' + m.cos + ')', m.tier].forEach(function (s) {
+    [m.cls, m.backbone, m.tier, 'noise ' + m.sigma + ', image similarity ' + m.cos].forEach(function (s) {
       meta.appendChild(el('span', null, s));
     });
     host.appendChild(meta);
@@ -162,11 +162,11 @@
     var cards = el('div', 'gate-cards');
 
     var a1 = el('div', 'gate-card ' + statusClass(m.status.a1, 'c-'));
-    a1.appendChild(el('div', 'gate-card-label', 'A1 residual divergence'));
+    a1.appendChild(el('div', 'gate-card-label', 'A1: how far the model drifts'));
     if (m.a1) {
       var pair = el('div', 'gate-card-pair');
-      [['init', m.a1.init, m.a1.init_layer, 'initiation, [0,' + t.a1_init_window + ')'],
-       ['prop', m.a1.prop, m.a1.prop_layer, 'propagation, L' + t.a1_prop_start + ' and up']
+      [['init', m.a1.init, m.a1.init_layer, 'does it start, layers 0 to ' + (t.a1_init_window - 1)],
+       ['prop', m.a1.prop, m.a1.prop_layer, 'does it carry, layer ' + t.a1_prop_start + ' and up']
       ].forEach(function (h) {
         var box = el('div');
         box.appendChild(el('div', 'gate-card-value ' +
@@ -176,25 +176,25 @@
       });
       a1.appendChild(pair);
       a1.appendChild(el('div', 'gate-card-sub',
-        'both halves must reach ' + t.a1.toFixed(2) + ': ' + statusWord(m.status.a1)));
+        'both must reach ' + t.a1.toFixed(2) + ': ' + statusWord(m.status.a1)));
     } else {
       a1.appendChild(el('div', 'gate-card-value', 'not measured'));
       a1.appendChild(el('div', 'gate-card-sub',
-        'no early routing pathway to instrument; rejected at A2'));
+        'nothing to measure here. This model is rejected at A2.'));
     }
     cards.appendChild(a1);
 
     var a2 = el('div', 'gate-card ' + statusClass(m.status.a2, 'c-'));
-    a2.appendChild(el('div', 'gate-card-label', 'A2 attention concentration'));
+    a2.appendChild(el('div', 'gate-card-label', 'A2: early attention on the image'));
     a2.appendChild(el('div', 'gate-card-value ' + (m.status.a2 === true ? 'v-pass' :
                       (m.status.a2 === false ? 'v-fail' : '')),
                       m.a2 == null ? 'not measured' : m.a2.toFixed(2)));
     a2.appendChild(el('div', 'gate-card-sub',
-      m.a2_kind + ', tier ' + m.a2_tier + ', threshold ' + t.a2 + ': ' + statusWord(m.status.a2)));
+      m.a2_kind + ', threshold ' + t.a2 + ': ' + statusWord(m.status.a2)));
     cards.appendChild(a2);
 
     var a3 = el('div', 'gate-card ' + statusClass(m.status.a3 === 'waived' ? null : m.status.a3, 'c-'));
-    a3.appendChild(el('div', 'gate-card-label', 'A3 off-manifold rate'));
+    a3.appendChild(el('div', 'gate-card-label', 'A3: does noise snap to another code'));
     a3.appendChild(el('div', 'gate-card-value ' + (m.status.a3 === true ? 'v-pass' :
                       (m.status.a3 === false ? 'v-fail' : '')), m.a3));
     a3.appendChild(el('div', 'gate-card-sub',
@@ -206,32 +206,32 @@
     var viz = el('div', 'gate-viz');
 
     var left = el('div');
-    left.appendChild(el('div', 'viz-title', 'A1: relative residual divergence per layer'));
+    left.appendChild(el('div', 'viz-title', 'How far the model drifts, layer by layer'));
     if (m.a1_curve) {
       var c = Object.assign({}, m.a1_curve,
         { init_i: m.a1.init_layer, prop_i: m.a1.prop_layer });
       var ch = a1Chart(c, t);
       left.appendChild(ch.svg);
       left.appendChild(el('div', 'viz-caption',
-        'sigma ' + m.a1_curve.sigma + ', n = ' + m.a1_curve.n_records + ' records. ' +
-        'Circles mark the two scored maxima; the dashed line is the 0.40 threshold.' +
+        'Noise ' + m.a1_curve.sigma + ', averaged over ' + m.a1_curve.n_records + ' records. ' +
+        'Circles mark the two values we score. The dashed line is 0.40.' +
         (ch.clipped ? ' Y-axis clipped: the curve reaches ' + ch.max.toFixed(1) +
                       ' late in the stack.' : '')));
     } else {
       left.appendChild(el('div', 'demo-note',
-        'Not instrumented. Continuous-projector controls have no early routing ' +
-        'concentration to begin with, so A2 settles the verdict without A1.'));
+        'Not measured. This model sends almost no early attention to the image ' +
+        'in the first place, so A2 already settles it.'));
     }
     viz.appendChild(left);
 
     var right = el('div');
-    right.appendChild(el('div', 'viz-title', 'A2: visual to prompt-last attention mass'));
+    right.appendChild(el('div', 'viz-title', 'How much early attention goes to the image'));
     if (m.heatmap) {
       right.appendChild(a2Heatmap(m.heatmap));
       right.appendChild(el('div', 'viz-caption',
-        'Head by layer, first 16 layers, mean over n = ' + m.heatmap.n_records +
-        ' records. Brighter is more mass. The box marks the layers this model is ' +
-        'scored over (' + (m.heatmap.score_window === 1 ? 'L0 sink' : '[0,8) window') + ').'));
+        'One row per layer, one column per attention head, first 16 layers, ' +
+        'averaged over ' + m.heatmap.n_records + ' records. Brighter means more ' +
+        'attention on the image. The box marks the layers this model is scored on.'));
     } else {
       right.appendChild(el('div', 'demo-note', 'No head-level map on disk for this model.'));
     }
@@ -242,7 +242,7 @@
     var lines = [behaviorLine(m.pope, 'POPE'), behaviorLine(m.amber, 'AMBER')]
       .filter(function (s) { return s; });
     if (lines.length) {
-      beh.appendChild(el('dt', null, 'Under L0 ablation'));
+      beh.appendChild(el('dt', null, 'What happens when we switch L0 off'));
       var dd = el('dd');
       lines.forEach(function (s, i) {
         if (i) dd.appendChild(el('br'));
@@ -254,20 +254,20 @@
       }
       if (m.degen) {
         dd.appendChild(el('br'));
-        dd.appendChild(el('span', 'pill pill-warn', 'degenerate emitter'));
+        dd.appendChild(el('span', 'pill pill-warn', 'stops answering properly'));
       }
       if (m.catas) {
         dd.appendChild(el('br'));
-        dd.appendChild(el('span', 'pill pill-warn', 'catastrophic collapse'));
+        dd.appendChild(el('span', 'pill pill-warn', 'model breaks'));
       }
       beh.appendChild(dd);
     }
     if (m.sanity) {
-      beh.appendChild(el('dt', null, 'Sanity criterion'));
+      beh.appendChild(el('dt', null, 'Sanity check'));
       beh.appendChild(el('dd', null, m.sanity));
     }
     if (m.note) {
-      beh.appendChild(el('dt', null, 'Notes'));
+      beh.appendChild(el('dt', null, 'Why this model matters'));
       beh.appendChild(el('dd', null, m.note));
     }
     host.appendChild(beh);
@@ -280,8 +280,8 @@
 
     var counts = document.getElementById('gate-counts');
     if (counts) {
-      counts.textContent = data.counts.total + ' models, ' + data.counts.passing +
-        ' pass the chain, ' + data.counts.rejected + ' rejected.';
+      counts.textContent = 'We tested ' + data.counts.total + ' models. ' + data.counts.passing +
+        ' pass all three gates and ' + data.counts.rejected + ' are rejected.';
     }
 
     var buttons = [];
@@ -317,19 +317,19 @@
   /* =================================================== CHAIR browser ==== */
 
   var COND_LABEL = {
-    baseline: 'Baseline',
-    l0: 'L0 ablation (ours)',
+    baseline: 'Normal model',
+    l0: 'With L0 switched off (ours)',
     dola: 'Tuned DoLA',
     vcd: 'Tuned VCD'
   };
 
   var FILTERS = [
     ['all', 'All 500 images'],
-    ['l0_fixes', 'L0 removes every hallucination the baseline made'],
-    ['baseline_bad', 'Baseline hallucinates 3 or more objects'],
-    ['l0_worse', 'L0 hallucinates more than the baseline'],
-    ['l0_degen', 'L0 output loops'],
-    ['vcd_degen', 'VCD output loops']
+    ['l0_fixes', 'Switching L0 off removes every made-up object'],
+    ['baseline_bad', 'The normal model makes up 3 or more objects'],
+    ['l0_worse', 'Switching L0 off makes it worse'],
+    ['l0_degen', 'Switching L0 off makes it repeat itself'],
+    ['vcd_degen', 'VCD makes it repeat itself']
   ];
 
   function matches(im, f) {
@@ -352,7 +352,7 @@
       frag.appendChild(document.createTextNode(cap.text.slice(pos, s[0])));
       var mark = el('span', s[3] === 'halluc' ? 'tok-halluc' : 'tok-correct',
                     cap.text.slice(s[0], s[1]));
-      mark.title = (s[3] === 'halluc' ? 'hallucinated: ' : 'grounded: ') + s[2];
+      mark.title = (s[3] === 'halluc' ? 'not in the image: ' : 'really there: ') + s[2];
       frag.appendChild(mark);
       pos = s[1];
     });
@@ -423,7 +423,7 @@
         var pills = el('span');
         pills.appendChild(el('span',
           'pill ' + (cap.n_halluc ? 'pill-fail' : 'pill-pass'),
-          cap.n_halluc ? cap.n_halluc + ' hallucinated' : 'none hallucinated'));
+          cap.n_halluc ? cap.n_halluc + ' made up' : 'nothing made up'));
         if (cap.degenerate) {
           pills.appendChild(document.createTextNode(' '));
           pills.appendChild(el('span', 'pill pill-warn', 'looping'));
@@ -470,9 +470,9 @@
       .catch(function () {
         var n = document.getElementById(host);
         if (n) n.innerHTML = '<div class="demo-note">Could not load <code>' + url +
-          '</code>. If you opened this file directly from disk, serve the directory ' +
-          'over HTTP instead (<code>python -m http.server</code>): browsers block ' +
-          'fetch() on file:// URLs.</div>';
+          '</code>. If you opened this file straight from disk, run ' +
+          '<code>python -m http.server</code> in this folder and use the ' +
+          'localhost address instead. Browsers block data loading on file:// URLs.</div>';
       });
   }
 
