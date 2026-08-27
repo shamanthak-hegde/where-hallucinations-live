@@ -16,7 +16,8 @@
         href="https://cdn.jsdelivr.net/gh/jpswalsh/academicons@1/css/academicons.min.css">
   <link rel="stylesheet" href="./static/css/index.css">
   <link rel="stylesheet" href="./static/css/demo.css">
-  <link rel="icon" href="./static/images/favicon.svg">
+  <link rel="icon" type="image/svg+xml" href="./static/images/favicon.svg">
+  <link rel="icon" type="image/png" sizes="32x32" href="./static/images/favicon-32.png">
 
   <script defer src="./static/js/fontawesome.all.min.js"></script>
   <script src="./static/js/demo.js"></script>
@@ -235,8 +236,8 @@
     <div class="content has-text-justified" style="margin-top:1.5rem;">
       <p><b>Why the gates are applied as a chain.</b> Individually each one admits
       confounds. A2 alone is passed by a model that routes visual tokens
-      through L0 without driving a pathological signal along that route: the
-      matched-compute MLP control has L0 mass 25.52, because a healthy
+      through L<sub>0</sub> without driving a pathological signal along that route: the
+      matched-compute MLP control has L<sub>0</sub> mass 25.52, because a healthy
       Vicuna-7B already routes early visual attention there, yet it fails A1
       and has a null behavioral effect. UniTok and Emu3 clear the A2 mass
       threshold and fail A1 from opposite directions. Qwen-VQ makes the
@@ -300,7 +301,7 @@
         collapse by construction and installs the circuit anyway, with inverted polarity.
         FSQ v2 reproduces that inversion behaviorally (yes-rate +53.3 points, AMBER -19.8)
         but installs no gate-detectable early event: its initiation value is 0.379, and
-        divergence first clears 0.4 only at L14. The two lattices agree on the behavioral
+        divergence first clears 0.4 only at L<sub>14</sub>. The two lattices agree on the behavioral
         consequence and differ on the mechanism, so the polarity inversion cannot be
         attributed to the early circuit alone. Together with Qwen-VQ, which collapses
         without installing the circuit, this leaves discretization through a codebook as
@@ -432,8 +433,7 @@
   <div class="container is-max-desktop content">
     <h2 class="title is-3">BibTeX</h2>
     <p class="bibtex-note">
-      Citation to follow once the arXiv preprint is posted, and again once the EMNLP
-      proceedings appear.
+      Coming soon!
     </p>
     <!-- Paste the arXiv entry here when the preprint is up, then replace it with the
          ACL Anthology entry at publication:
