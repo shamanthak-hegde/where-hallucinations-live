@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="description"
+        content="An early-layer attention routing circuit shared by VQ-tokenized vision-language models, a three-gate diagnostic that detects it across 25 models, and an ablation that reduces object hallucination in open-ended captioning.">
+  <meta name="keywords" content="vision-language models, hallucination, mechanistic interpretability, vector quantization, VQ tokenizer, activation patching, unified VLM">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Where Hallucinations Live: A Cross-Architecture Circuit in VQ-Tokenized VLMs</title>
+
+  <link href="https://fonts.googleapis.com/css?family=Google+Sans|Noto+Sans|Castoro"
+        rel="stylesheet">
+
+  <link rel="stylesheet" href="./static/css/bulma.min.css">
+  <link rel="stylesheet"
+        href="https://cdn.jsdelivr.net/gh/jpswalsh/academicons@1/css/academicons.min.css">
+  <link rel="stylesheet" href="./static/css/index.css">
+  <link rel="stylesheet" href="./static/css/demo.css">
+  <link rel="icon" href="./static/images/favicon.svg">
+
+  <script defer src="./static/js/fontawesome.all.min.js"></script>
+  <script src="./static/js/demo.js"></script>
+</head>
+<body>
+
+<section class="hero">
+  <div class="hero-body">
+    <div class="container is-max-desktop">
+      <div class="columns is-centered">
+        <div class="column has-text-centered">
+          <h1 class="title is-1 publication-title">Where Hallucinations Live</h1>
+          <h2 class="subtitle is-4" style="margin-top:-0.5rem;color:#555;">
+            A Cross-Architecture Circuit in VQ-Tokenized Vision-Language Models
+          </h2>
+
+          <div class="is-size-5 publication-authors">
+            <span class="author-block">
+              <a href="https://shamanthak-hegde.github.io/">Shamanthak Hegde</a><sup>1</sup>,</span>
+            <span class="author-block">
+              <a href="https://lxrswdd.github.io/">Xiangrui Liu</a><sup>1</sup>,</span>
+            <span class="author-block">
+              <a href="https://maitreyapatel.com/">Maitreya Patel</a><sup>2</sup></span>
+            <span class="author-block">
+            <a href="https://yezhouyang.engineering.asu.edu/">Yezhou Yang</a><sup>1</sup></span>
+          </div>
+
+          <div class="is-size-5 publication-authors">
+            <span class="author-block"><sup>1</sup>Arizona State University</span>
+            <span class="author-block"><sup>2</sup>Adobe</span>
+          </div>
+
+          <div class="column has-text-centered">
+            <div class="publication-links">
+              <!-- TODO(author): fill in the arXiv id. -->
+              <span class="link-block">
+                <a href="https://arxiv.org/abs/XXXX.XXXXX"
+                   class="external-link button is-normal is-rounded is-dark">
+                  <span class="icon"><i class="ai ai-arxiv"></i></span>
+                  <span>arXiv</span>
+                </a>
+              </span>
+              <!-- TODO: confirm this resolves once the repo is public. -->
+              <span class="link-block">
+                <a href="https://github.com/shamanthak-hegde/vq-routing-circuit"
+                   class="external-link button is-normal is-rounded is-dark">
+                  <span class="icon"><i class="fab fa-github"></i></span>
+                  <span>Code</span>
+                </a>
+              </span>
+              <span class="link-block">
+                <a href="#BibTeX"
+                   class="external-link button is-normal is-rounded is-dark">
+                  <span class="icon"><i class="fas fa-quote-left"></i></span>
+                  <span>BibTeX</span>
+                </a>
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<section class="section">
+  <div class="container is-max-desktop">
+    <div class="columns is-centered has-text-centered">
+      <div class="column is-four-fifths">
+        <h2 class="title is-3">Abstract</h2>
+        <div class="content has-text-justified">
+          <p>
+            Unified vision-language models (VLMs) that tokenize images through a
+            vector-quantized (VQ) codebook routinely hallucinate objects on grounded
+            yes/no benchmarks, yet existing decoding-time fixes treat this as generic
+            miscalibration without an architectural account. Using activation patching
+            across twenty-five models spanning eight LLM families, we identify an
+            early-layer (L<sub>0</sub>) attention routing circuit shared across
+            VQ-tokenized VLMs and propose a three-gate diagnostic that distinguishes the
+            models carrying it. The diagnostic isolates ten positive models (five natural
+            unified-VQ VLMs across three LLM families and five induced variants) and
+            rejects the remaining fifteen. A single-variable architectural swap
+            (LLaVA-1.6 CLIP+MLP to VQ+Linear) installs the circuit, while a
+            matched-compute MLP control does not, isolating vector quantization as the
+            source of the pathological signal; the routing pathway that carries it is one
+            that the backbone already provides. Against tuned baselines, DoLA wins on
+            binary calibration, but <i>only L<sub>0</sub> ablation reduces object
+            hallucination in open-ended generation</i> (CHAIR<sub>i</sub> -31% relative;
+            tuned DoLA and VCD leave it unchanged or worsen it). These results recast
+            object hallucination in unified VQ VLMs as a property of architecture and
+            pretraining, and yield a targeted intervention that mechanism-agnostic
+            decoding cannot replicate.
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<section class="section" style="padding-top:0;">
+  <div class="container is-max-desktop">
+    <h2 class="title is-3">Contributions</h2>
+    <div class="content has-text-justified">
+      <ul>
+        <li>A cross-architecture L<sub>0</sub> routing circuit present in five natural
+          unified-VQ VLMs across three LLM families, absent in continuous-projector
+          models, and structurally validated on a held-out model not used to calibrate
+          the diagnostic.</li>
+        <li>Causal identification of the VQ bottleneck via single-variable construction
+          with a matched-compute MLP control, and a training-time asymmetry showing the
+          circuit is encoded in LLM backbone weights.</li>
+        <li>A three-gate diagnostic chain with an architecturally motivated (not
+          threshold-fit) two-tier criterion that discriminates twenty-five models with
+          mechanistically distinct positive and negative signatures.</li>
+        <li>An intervention that loses to tuned VCD and DoLA on binary calibration but
+          uniquely reduces object hallucination in open-ended generation.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+
+<section class="section" style="padding-top:0;">
+  <div class="container is-max-widescreen">
+    <h2 class="title is-3">Method</h2>
+    <img src="./static/images/Methods.png"
+         alt="Methodology overview. Clean and corrupted image pairs pass through the transformer; residual divergence and early-layer attention mass feed a three-gate decision; a single-variable projector swap provides the causal control; L0 ablation is evaluated on binary benchmarks and on open-ended captioning.">
+    <div class="content has-text-justified" style="margin-top:1.25rem;">
+      <p>
+        We instantiate activation patching with two corruption types, Gaussian noise on
+        visual embeddings and image-swap corruption, over a fixed set of 500 paired
+        records (300 NaturalBench image-swap pairs and 200 POPE Gaussian-noise pairs).
+        For each record we cache activations on the clean and corrupted runs, then re-run
+        the corrupted input while patching in the clean activation at one
+        (token-category, layer) site at a time. The restoration score
+        <span class="mono">R = (logit<sub>patch</sub> - logit<sub>corrupt</sub>) /
+        (logit<sub>clean</sub> - logit<sub>corrupt</sub>)</span> is read out on the answer
+        token.
+      </p>
+      <p>
+        Visual-embedding norms vary by more than an order of magnitude across the cohort,
+        so a fixed noise scale would over-perturb some models and under-perturb others.
+        For each model we sweep sigma on a logarithmic grid and take the value whose mean
+        per-token clean-to-noisy cosine similarity is closest to 0.5. This uses only input
+        embeddings, not predictions or labels. Sigma then sorts the cohort into three
+        classes: projector-amplified VQ, continuous-projector, and unified-vocab VQ, where
+        visual tokens enter the LM token-embedding table at text-token scale. Gate
+        A<sub>2</sub>'s two-tier threshold is inherited from that classification rather
+        than fit to the cohort labels.
+      </p>
+    </div>
+  </div>
+</section>
+
+
+<section class="section" style="padding-top:0;">
+  <div class="container is-max-desktop">
+    <h2 class="title is-3">Gate A<sub>1</sub> is conjunctive</h2>
+    <div class="content has-text-justified">
+      <p>
+        The candidate circuit predicts two things: a routing event concentrated in the
+        early layers, and persistence of the resulting signal rather than its dissipation.
+        A<sub>1</sub> therefore has two halves.
+        <b>Initiation</b> requires the relative divergence between clean and corrupted
+        residual streams to reach 0.4 within layers [0,&nbsp;8), the first quarter of the
+        stack. <b>Propagation</b> requires it to reach 0.4 again somewhere at
+        layer&nbsp;12 or later. The two ranges are disjoint and separated by a four-layer
+        buffer, so neither can be satisfied by the decaying shoulder of the other. A model
+        passes A<sub>1</sub> only if both hold.
+      </p>
+      <p>
+        The two failure modes are populated by different models. Failing initiation means
+        the model does not route visual information through its early layers, which is
+        where UniTok, Show-o, SEED-LLaMA, the matched-compute MLP control and FSQ v2 land.
+        Failing propagation means the early event is causally inert: Emu3-Chat is the one
+        model in the cohort with a real initiation event, 0.435 at L<sub>0</sub>, that
+        decays to a downstream maximum of 0.215.
+      </p>
+    </div>
+    <img src="./static/images/a1_gate.png"
+         alt="Relative divergence per layer for VILA-U and the matched-compute LLaVA-MLP control, with the initiation window and the propagation range shaded and the 0.4 threshold marked.">
+    <p class="demo-note has-text-centered">
+      VILA-U clears 0.4 in both ranges. The matched-compute MLP control, trained on the
+      same data for the same 2000 steps, clears neither (0.206 initiation, 0.106
+      propagation).
+    </p>
+  </div>
+</section>
+
+
+<section class="section" style="padding-top:0;">
+  <div class="container is-max-widescreen demo">
+    <h2 class="title is-3">Every model we measured</h2>
+    <p class="demo-hint">
+      <span id="gate-counts"></span>
+      Each row shows its three gate outcomes as dots (A<sub>1</sub>, A<sub>2</sub>,
+      A<sub>3</sub>). Selecting a model shows the measured divergence curve behind its
+      A<sub>1</sub> numbers and the head-by-layer routing map behind its A<sub>2</sub>
+      number, both read from the same arrays the paper's tables were computed from.
+    </p>
+
+    <div class="gate-wrap">
+      <div class="gate-list" id="gate-list"></div>
+      <div class="gate-detail" id="gate-detail"></div>
+    </div>
+
+    <div class="content has-text-justified" style="margin-top:1.5rem;">
+      <p><b>Why the gates are applied as a chain.</b> Individually each one admits
+      confounds. A<sub>2</sub> alone is passed by a model that routes visual tokens
+      through L<sub>0</sub> without driving a pathological signal along that route: the
+      matched-compute MLP control has L<sub>0</sub> mass 25.52, because a healthy
+      Vicuna-7B already routes early visual attention there, yet it fails A<sub>1</sub>
+      and has a null behavioral effect. UniTok and Emu3 clear the A<sub>2</sub> mass
+      threshold and fail A<sub>1</sub> from opposite directions. Qwen-VQ makes the
+      converse point, passing A<sub>1</sub> and A<sub>3</sub> with a severely collapsed
+      codebook and failing only the mass screen. Janus-Pro passes A<sub>1</sub> because
+      any model that grounds strongly propagates visual corruption forward, quantized or
+      not.</p>
+      <p><b>Threshold sensitivity.</b> Sweeping one gate at a time over the nineteen
+      models carrying instrumented gate values, the partition is invariant to
+      A<sub>3</sub> across 60 to 95% and to A<sub>2</sub> across 8 to 15, first changing
+      at 18 when VILA-U, the lowest-mass positive at 17.50, drops out. A<sub>1</sub> is
+      bound on both sides: lowering it to 0.35 admits FSQ v2 at 0.379 and 0.30 admits
+      UniTok at 0.347, while raising it to 0.45 drops FSQ v1. That upper bound is
+      numerically tight, since FSQ v1's binding value is 0.449997.</p>
+    </div>
+  </div>
+</section>
+
+
+<section class="section" style="padding-top:0;">
+  <div class="container is-max-widescreen">
+    <h2 class="title is-3">Induction and the matched-compute control</h2>
+
+    <img src="./static/images/matched_compute_3panel.png"
+         alt="Three panels comparing a VQ+Linear projector against a matched-compute MLP projector: A1 initiation and propagation against the 0.4 threshold, L0 attention mass against the threshold of 15, and POPE yes-rate before and after L0 ablation.">
+    <div class="content has-text-justified" style="margin-top:1.25rem;">
+      <p>
+        Starting from LLaVA-1.6 with Vicuna-7B and CLIP frozen, we train two projectors
+        that differ in exactly one component: one quantizes through a codebook, one does
+        not. Same 50k CC3M subset, same 2000 steps, same hyperparameters. Only the VQ
+        configuration installs the circuit. Panel (b) is the part that matters for the
+        chain design: both configurations have essentially the same L<sub>0</sub>
+        attention mass, so the routing pathway is already in the backbone. What VQ
+        pretraining adds is the signal that travels down it, plus the divergence that
+        carries that signal forward.
+      </p>
+      <p>
+        Reversal does not work at the same budget. Training a continuous SigLIP MLP
+        adapter on top of VILA-U's VQ-pretrained Vicuna-7B for 2000 steps leaves
+        A<sub>1</sub> passing (0.672 initiation, 0.647 propagation), raises L<sub>0</sub>
+        mass from 17.50 to 20.53, and raises the POPE yes-rate from 81% to 99.2%. It is
+        recorded as a chain FAIL at A<sub>3</sub> because the continuous adapter leaves no
+        codebook to probe; the structural gates it does pass are what carry the reversal
+        argument.
+      </p>
+    </div>
+
+    <img src="./static/images/codebook_polarity_bars.png" style="margin-top:1.5rem;"
+         alt="Panel a: POPE yes-rate before and after L0 ablation for the four capacity settings and the two FSQ configurations. Panel b: codebook mean yes-rate against baseline POPE yes-rate for VILA-U, Liquid and Chameleon.">
+    <div class="content has-text-justified" style="margin-top:1.25rem;">
+      <p>
+        Capacity does not determine polarity. All four K values collapse to roughly 80 to
+        160 active codes regardless of nominal capacity, and their polarities still
+        differ. K = 4096 is the open anomaly: a per-entry bias probe shows its codebook is
+        strongly YES-biased at 0.836, statistically indistinguishable from K = 16384
+        (0.864) and K = 65536 (0.870), yet L<sub>0</sub> ablation moves it in the opposite
+        direction. The anomaly is in the sign of the intervention, not in the codebook.
+      </p>
+      <p>
+        Collapse is not the operative factor either. The FSQ v1 configuration cannot
+        collapse by construction and installs the circuit anyway, with inverted polarity.
+        FSQ v2 reproduces that inversion behaviorally (yes-rate +53.3 points, AMBER -19.8)
+        but installs no gate-detectable early event: its initiation value is 0.379, and
+        divergence first clears 0.4 only at L14. The two lattices agree on the behavioral
+        consequence and differ on the mechanism, so the polarity inversion cannot be
+        attributed to the early circuit alone. Together with Qwen-VQ, which collapses
+        without installing the circuit, this leaves discretization through a codebook as
+        the operative factor and the surviving codes' training distribution as what
+        governs the sign.
+      </p>
+    </div>
+  </div>
+</section>
+
+
+<section class="section" style="padding-top:0;">
+  <div class="container is-max-widescreen">
+    <h2 class="title is-3">Binary versus generative</h2>
+
+    <div class="columns is-vcentered">
+      <div class="column is-half">
+        <img src="./static/images/binary_benchmarks.png"
+             alt="POPE and AMBER accuracy for baseline, L0 ablation and tuned DoLA. Tuned DoLA is highest on both.">
+        <p class="demo-note has-text-centered">Binary benchmarks. Tuned DoLA wins.</p>
+      </div>
+      <div class="column is-half">
+        <img src="./static/images/generation_chairi.png"
+             alt="CHAIRi with image-level confidence intervals for baseline, tuned VCD, tuned DoLA and L0 ablation. Only L0 ablation falls below baseline.">
+        <p class="demo-note has-text-centered">
+          Open-ended captioning. Only L<sub>0</sub> ablation falls below baseline.
+        </p>
+      </div>
+    </div>
+
+    <div class="content has-text-justified">
+      <p>
+        We swept VCD over 16 configurations and DoLA over 20 and report the best
+        configuration per benchmark. On POPE and AMBER, tuned DoLA reaches 0.794 and
+        0.795, above every mechanism-targeted intervention we tried. On a single-token
+        forced choice a tuned decoding-time logit fix can match or beat ablation.
+      </p>
+      <p>
+        On CHAIR the ranking reverses. Only L<sub>0</sub> ablation reduces
+        CHAIR<sub>i</sub>, from 10.3% to 7.1%. This is not an artifact of shorter
+        captions: truncating each baseline caption to its paired ablated length lowers
+        baseline CHAIR<sub>i</sub> only to 9.53, leaving 2.40 points attributable to the
+        intervention. The effect concentrates where hallucination actually happens.
+        Baseline hallucination count correlates -0.383 with the change under ablation, and
+        images with at least two baseline hallucinations lose 1.59 hallucinated objects on
+        average while the rest are unchanged. By category, total hallucinated mentions
+        fall from 310 to 192, with 36 categories improving, 11 worsening and 31
+        unchanged.
+      </p>
+      <p>
+        Partial doses do not transfer between the two regimes. Scaling the L<sub>0</sub>
+        attention output by alpha rather than zeroing it gives +8.67, +8.17 and +12.30
+        points on POPE at alpha = 0.25, 0.50 and 0.75, so a partial dose beats full
+        ablation on the forced choice. Under the same sweep, only full ablation lowers
+        CHAIR<sub>i</sub> below baseline; every partial dose raises per-object
+        hallucination and lowers recall, shortening captions rather than grounding them.
+      </p>
+      <p>
+        On VILA-U itself, the model that survives the sanity criterion cleanly,
+        L<sub>0</sub> ablation gives +4.23 on POPE and +16.9 on AMBER; L<sub>1</sub>
+        ablation, targeting the downstream writer, gives +11.60 and +23.37; VTI at
+        alpha = 0.005 gives the largest AMBER effect at +30.23. The specificity is sharp
+        in the other direction too. The same L<sub>0</sub> ablation is null on LLaVA-1.6
+        (-0.7 on POPE) and catastrophic on Qwen2.5-VL (-34.3 on POPE, -20.1 on AMBER).
+      </p>
+    </div>
+  </div>
+</section>
+
+
+<section class="section" style="padding-top:0;">
+  <div class="container is-max-widescreen demo">
+    <h2 class="title is-3">Captions</h2>
+    <p class="demo-hint">
+      All 500 COCO val2014 images from the CHAIR evaluation, with VILA-U's caption under
+      each condition. COCO object mentions are highlighted:
+      <span class="tok-halluc">hallucinated</span> if the object is not in the
+      ground-truth set, <span class="tok-correct">grounded</span> if it is. Hover a
+      highlight for the COCO category it maps to. The aggregate row below is recomputed
+      from these caption files and reproduces the paper's CHAIR table.
+    </p>
+
+    <table class="chair-summary" id="chair-summary">
+      <thead>
+        <tr>
+          <th>Condition</th>
+          <th>CHAIR<sub>s</sub></th>
+          <th>CHAIR<sub>i</sub></th>
+          <th>Recall</th>
+          <th>Avg. length</th>
+          <th>Looping captions</th>
+        </tr>
+      </thead>
+    </table>
+
+    <div class="chair-controls">
+      <label for="chair-filter" class="is-sr-only">Filter images</label>
+      <select id="chair-filter"></select>
+      <button type="button" id="chair-prev">Previous</button>
+      <button type="button" id="chair-next">Next</button>
+      <button type="button" id="chair-random">Random</button>
+      <span class="chair-counter" id="chair-counter"></span>
+    </div>
+
+    <div class="chair-card" id="chair-card"></div>
+
+    <div class="chair-legend">
+      <span><span class="tok-halluc">hallucinated object</span></span>
+      <span><span class="tok-correct">grounded object</span></span>
+      <span><span class="pill pill-warn">looping</span> = caption repeats trigrams</span>
+    </div>
+
+    <div class="content has-text-justified" style="margin-top:1.25rem;">
+      <p class="demo-note">
+        The filters include the cases that do not favor the method. L<sub>0</sub> ablation
+        loops on 62 of the 500 images and shortens captions from 158 tokens to 78, trading
+        recall (58.5% to 51.6%) for the CHAIR<sub>i</sub> reduction; tuned VCD loops on
+        130. The looping flag is our own repeated-trigram measure, not a CHAIR metric.
+        This kind of failure is why every intervention in the paper is paired with a
+        question-conditional sanity criterion, and why Liquid and Anole, whose
+        L<sub>0</sub> ablation collapses them into degenerate emitters, are used as
+        gate-level evidence only.
+      </p>
+    </div>
+  </div>
+</section>
+
+
+<section class="section" style="padding-top:0;">
+  <div class="container is-max-desktop">
+    <h2 class="title is-3">Limitations</h2>
+    <div class="content has-text-justified">
+      <ul>
+        <li>The reverse-ablation result is an asymmetry at matched budget, not an
+          impossibility. A longer run with the LM unfrozen might in principle reverse the
+          circuit.</li>
+        <li>The polarity association is associational, not causal. The K = 4096 inversion
+          and Chameleon's mildly YES-promoting L<sub>0</sub> lack a mechanistic
+          explanation, and we do not claim that intervening on codebook bias would flip
+          polarity.</li>
+        <li>The circuit topology is shared, but the intervention direction is
+          model-specific: per-model VTI directions have pairwise cosine similarity at most
+          0.054 and must be re-derived per architecture.</li>
+        <li>The sanity criterion excludes Liquid and Anole as practical intervention
+          models. The distributed-head account of the L<sub>0</sub> routing rests on the
+          per-head mass distribution, so that claim is structural rather than causal.</li>
+        <li>The claim that collapse is not necessary rests on a single FSQ model, since
+          FSQ v2 reproduces the polarity inversion but fails A<sub>1</sub> at initiation.</li>
+        <li>The open-ended result rests on VILA-U plus one induced variant whose
+          CHAIR<sub>i</sub> reduction is not significant at the image level, so the
+          significant generative evidence rests on VILA-U alone.</li>
+        <li>The circuit is diagnosed and intervened on only in the understanding pathway.
+          Whether the same snapping-artifact signature degrades autoregressive
+          text-to-image generation, and whether L<sub>0</sub> ablation helps or harms
+          there, is outside the scope of this work.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+
+<section class="section" id="BibTeX">
+  <div class="container is-max-desktop content">
+    <h2 class="title is-3">BibTeX</h2>
+    <pre><code>@inproceedings{hegde2026wherehallucinationslive,
+  title     = {Where Hallucinations Live: A Cross-Architecture Circuit in
+               VQ-Tokenized Vision-Language Models},
+  author    = {Hegde, Shamanthak and Liu, Xiangrui and Patel, Maitreya and
+               Yang, Yezhou},
+  booktitle = {TODO},
+  year      = {2026}
+}</code></pre>
+  </div>
+</section>
+
+
+<footer class="footer">
+  <div class="container">
+    <div class="columns is-centered">
+      <div class="column is-8">
+        <div class="content">
+          <p style="font-size:0.85rem;">
+            The two interactive panels are rendered from JSON precomputed from the
+            experiment artifacts. The A<sub>1</sub> numbers shown per model are recomputed
+            from the same per-layer arrays the curves are drawn from and are checked
+            against the paper's cohort table at build time; the CHAIR aggregates are
+            recomputed from the caption files and reproduce the paper's table.
+          </p>
+          <p style="font-size:0.85rem;">
+            This website is built on the
+            <a href="https://github.com/nerfies/nerfies.github.io">Nerfies</a> project
+            page template, released under a
+            <a rel="license" href="http://creativecommons.org/licenses/by-sa/4.0/">Creative
+            Commons Attribution-ShareAlike 4.0 International License</a>.
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>
