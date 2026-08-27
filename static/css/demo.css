@@ -65,7 +65,7 @@
 .gate-list {
   border: 1px solid var(--rule);
   border-radius: 8px;
-  max-height: 640px;
+  max-height: 900px;
   overflow-y: auto;
   background: #fff;
 }
@@ -356,6 +356,8 @@
   overflow-y: auto;
   white-space: pre-wrap;
   word-break: break-word;
+  mask-image: linear-gradient(to bottom, #000 calc(100% - 1.6rem), transparent);
+  -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 1.6rem), transparent);
 }
 
 .tok-halluc {
@@ -406,12 +408,75 @@
    everything around it. */
 .fig-narrow { max-width: 700px; }
 
-.publication-notes {
-  margin-top: 0.6rem;
-  font-size: 0.85rem;
-  color: #6b6b6b;
+/* ------------------------------------------------------- page header */
+
+/* Two affiliations, so authors carry their affiliation as color and the
+   affiliation line repeats it as a marker. Superscripts are then free to
+   mean only what the notes below say they mean. */
+.aff-asu   { --aff: #2b6cb0; }
+.aff-adobe { --aff: #9146b8; }
+
+.publication-authors .author-block a,
+.publication-authors .author-block a:hover {
+  color: var(--aff) !important;
+}
+
+.venue-badge {
+  font-family: 'Google Sans', sans-serif;
+  font-size: 1.6rem;
+  font-weight: 600;
+  color: #4a4a4a;
+  letter-spacing: 0.01em;
+  margin-bottom: 0.65rem;
+}
+
+.publication-subtitle {
+  color: #555;
+  margin-top: -0.35rem !important;
+  margin-bottom: 2.25rem !important;
+  text-wrap: balance;
+}
+
+.author-line {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.35rem 1.5rem;
   justify-content: center;
+  gap: 0.1rem 0.45rem;
+  margin-bottom: 0.85rem;
+}
+
+.affiliation-line {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.3rem 1.6rem;
+  color: #363636;
+  margin-bottom: 1.4rem;
+}
+
+.affiliation-line > span { color: #363636; }
+
+.aff-mark {
+  color: var(--aff);
+  font-size: 0.8em;
+  margin-right: 0.4em;
+  vertical-align: 0.05em;
+}
+
+.publication-notes {
+  font-size: 0.9rem;
+  color: #6b6b6b;
+  margin-bottom: 2rem;
+}
+
+.publication-notes p { margin: 0 0 0.3rem; }
+.publication-notes a { color: #6b6b6b; text-decoration: underline; }
+
+.publication-links { margin-top: 0.25rem; }
+.publication-links .button { margin: 0.3rem 0.25rem; }
+
+.hero .hero-body { padding-bottom: 3.5rem; }
+
+@media screen and (max-width: 640px) {
+  .venue-badge { font-size: 1.2rem; }
 }

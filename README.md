@@ -1,7 +1,7 @@
 # Where Hallucinations Live
 
 Project page for *Where Hallucinations Live: A Cross-Architecture Circuit in
-VQ-Tokenized Vision-Language Models*.
+VQ-Tokenized Vision-Language Models*, EMNLP 2026 Main.
 
 Live at https://shamanthak-hegde.github.io/where-hallucinations-live/
 
@@ -67,7 +67,6 @@ site works unchanged at a project-page subpath.
 ## Still to fill in
 
 - The arXiv id in `index.html` (marked `TODO`).
-- The venue in the BibTeX entry.
 
 ## Template license
 
