@@ -188,13 +188,13 @@
       <p>
         The candidate circuit predicts two things: a routing event concentrated in the
         early layers, and persistence of the resulting signal rather than its dissipation.
-        A<sub>1</sub> therefore has two halves.
+        A1 therefore has two halves.
         <b>Initiation</b> requires the relative divergence between clean and corrupted
         residual streams to reach 0.4 within layers [0,&nbsp;8), the first quarter of the
         stack. <b>Propagation</b> requires it to reach 0.4 again somewhere at
         layer&nbsp;12 or later. The two ranges are disjoint and separated by a four-layer
         buffer, so neither can be satisfied by the decaying shoulder of the other. A model
-        passes A<sub>1</sub> only if both hold.
+        passes A1 only if both hold.
       </p>
       <p>
         The two failure modes are populated by different models. Failing initiation means
@@ -221,9 +221,9 @@
     <h2 class="title is-3">Every model we measured</h2>
     <p class="demo-hint">
       <span id="gate-counts"></span>
-      Each row shows its three gate outcomes as dots (A<sub>1</sub>, A<sub>2</sub>,
-      A<sub>3</sub>). Selecting a model shows the measured divergence curve behind its
-      A<sub>1</sub> numbers and the head-by-layer routing map behind its A<sub>2</sub>
+      Each row shows its three gate outcomes as dots (A1, A2,
+      A3). Selecting a model shows the measured divergence curve behind its
+      A1 numbers and the head-by-layer routing map behind its A2
       number, both read from the same arrays the paper's tables were computed from.
     </p>
 
@@ -234,20 +234,20 @@
 
     <div class="content has-text-justified" style="margin-top:1.5rem;">
       <p><b>Why the gates are applied as a chain.</b> Individually each one admits
-      confounds. A<sub>2</sub> alone is passed by a model that routes visual tokens
-      through L<sub>0</sub> without driving a pathological signal along that route: the
-      matched-compute MLP control has L<sub>0</sub> mass 25.52, because a healthy
-      Vicuna-7B already routes early visual attention there, yet it fails A<sub>1</sub>
-      and has a null behavioral effect. UniTok and Emu3 clear the A<sub>2</sub> mass
-      threshold and fail A<sub>1</sub> from opposite directions. Qwen-VQ makes the
-      converse point, passing A<sub>1</sub> and A<sub>3</sub> with a severely collapsed
-      codebook and failing only the mass screen. Janus-Pro passes A<sub>1</sub> because
+      confounds. A2 alone is passed by a model that routes visual tokens
+      through L0 without driving a pathological signal along that route: the
+      matched-compute MLP control has L0 mass 25.52, because a healthy
+      Vicuna-7B already routes early visual attention there, yet it fails A1
+      and has a null behavioral effect. UniTok and Emu3 clear the A2 mass
+      threshold and fail A1 from opposite directions. Qwen-VQ makes the
+      converse point, passing A1 and A3 with a severely collapsed
+      codebook and failing only the mass screen. Janus-Pro passes A1 because
       any model that grounds strongly propagates visual corruption forward, quantized or
       not.</p>
       <p><b>Threshold sensitivity.</b> Sweeping one gate at a time over the nineteen
       models carrying instrumented gate values, the partition is invariant to
-      A<sub>3</sub> across 60 to 95% and to A<sub>2</sub> across 8 to 15, first changing
-      at 18 when VILA-U, the lowest-mass positive at 17.50, drops out. A<sub>1</sub> is
+      A3 across 60 to 95% and to A2 across 8 to 15, first changing
+      at 18 when VILA-U, the lowest-mass positive at 17.50, drops out. A1 is
       bound on both sides: lowering it to 0.35 admits FSQ v2 at 0.379 and 0.30 admits
       UniTok at 0.347, while raising it to 0.45 drops FSQ v1. That upper bound is
       numerically tight, since FSQ v1's binding value is 0.449997.</p>
@@ -450,7 +450,7 @@
         <div class="content">
           <p style="font-size:0.85rem;">
             The two interactive panels are rendered from JSON precomputed from the
-            experiment artifacts. The A<sub>1</sub> numbers shown per model are recomputed
+            experiment artifacts. The A1 numbers shown per model are recomputed
             from the same per-layer arrays the curves are drawn from and are checked
             against the paper's cohort table at build time; the CHAIR aggregates are
             recomputed from the caption files and reproduce the paper's table.
