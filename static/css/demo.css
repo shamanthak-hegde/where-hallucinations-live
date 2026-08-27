@@ -441,14 +441,28 @@
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
+  align-items: baseline;
   gap: 0.1rem 0.45rem;
   margin-bottom: 0.85rem;
+}
+
+/* A superscript otherwise grows the line box above the baseline, which drops the
+   two marked names about 5 px below the two unmarked ones. */
+.author-line sup,
+.affiliation-line sup,
+.publication-notes sup {
+  line-height: 0;
+  position: relative;
+  top: -0.45em;
+  vertical-align: baseline;
+  font-size: 0.7em;
 }
 
 .affiliation-line {
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
+  align-items: baseline;
   gap: 0.3rem 1.6rem;
   color: #363636;
   margin-bottom: 1.4rem;
