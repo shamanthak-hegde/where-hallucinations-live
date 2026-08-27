@@ -371,7 +371,7 @@
         var a = data.aggregates[k];
         var tr = el('tr', k === 'l0' ? 'is-ours' : null);
         [COND_LABEL[k], a.chair_s.toFixed(1), a.chair_i.toFixed(1),
-         a.recall.toFixed(1), a.avg_len, a.n_degenerate].forEach(function (v, i) {
+         a.recall.toFixed(1), a.avg_len].forEach(function (v, i) {
           tr.appendChild(el(i === 0 ? 'th' : 'td', null, v));
         });
         tb.appendChild(tr);

@@ -35,18 +35,24 @@
 
           <div class="is-size-5 publication-authors">
             <span class="author-block">
-              <a href="https://shamanthak-hegde.github.io/">Shamanthak Hegde</a><sup>1</sup>,</span>
+              <a href="https://shamanthak-hegde.github.io/">Shamanthak Hegde</a><sup>1*</sup>,</span>
             <span class="author-block">
               <a href="https://lxrswdd.github.io/">Xiangrui Liu</a><sup>1</sup>,</span>
             <span class="author-block">
-              <a href="https://maitreyapatel.com/">Maitreya Patel</a><sup>2</sup></span>
+              <a href="https://maitreyapatel.com/">Maitreya Patel</a><sup>2&dagger;</sup>,</span>
             <span class="author-block">
-            <a href="https://yezhouyang.engineering.asu.edu/">Yezhou Yang</a><sup>1</sup></span>
+              <a href="https://yezhouyang.engineering.asu.edu/">Yezhou Yang</a><sup>1</sup></span>
           </div>
 
           <div class="is-size-5 publication-authors">
             <span class="author-block"><sup>1</sup>Arizona State University</span>
             <span class="author-block"><sup>2</sup>Adobe</span>
+          </div>
+
+          <div class="publication-notes">
+            <span><sup>*</sup>Corresponding author:
+              <a href="mailto:shamanthak@asu.edu">shamanthak@asu.edu</a></span>
+            <span><sup>&dagger;</sup>Partial work done while at Arizona State University.</span>
           </div>
 
           <div class="column has-text-centered">
@@ -144,7 +150,7 @@
 <section class="section" style="padding-top:0;">
   <div class="container is-max-widescreen">
     <h2 class="title is-3">Method</h2>
-    <img src="./static/images/Methods.png"
+    <img class="fig" src="./static/images/Methods.png"
          alt="Methodology overview. Clean and corrupted image pairs pass through the transformer; residual divergence and early-layer attention mass feed a three-gate decision; a single-variable projector swap provides the causal control; L0 ablation is evaluated on binary benchmarks and on open-ended captioning.">
     <div class="content has-text-justified" style="margin-top:1.25rem;">
       <p>
@@ -198,7 +204,7 @@
         decays to a downstream maximum of 0.215.
       </p>
     </div>
-    <img src="./static/images/a1_gate.png"
+    <img class="fig fig-narrow" src="./static/images/a1_gate.png"
          alt="Relative divergence per layer for VILA-U and the matched-compute LLaVA-MLP control, with the initiation window and the propagation range shaded and the 0.4 threshold marked.">
     <p class="demo-note has-text-centered">
       VILA-U clears 0.4 in both ranges. The matched-compute MLP control, trained on the
@@ -253,7 +259,7 @@
   <div class="container is-max-widescreen">
     <h2 class="title is-3">Induction and the matched-compute control</h2>
 
-    <img src="./static/images/matched_compute_3panel.png"
+    <img class="fig" src="./static/images/matched_compute_3panel.png"
          alt="Three panels comparing a VQ+Linear projector against a matched-compute MLP projector: A1 initiation and propagation against the 0.4 threshold, L0 attention mass against the threshold of 15, and POPE yes-rate before and after L0 ablation.">
     <div class="content has-text-justified" style="margin-top:1.25rem;">
       <p>
@@ -277,7 +283,7 @@
       </p>
     </div>
 
-    <img src="./static/images/codebook_polarity_bars.png" style="margin-top:1.5rem;"
+    <img class="fig" src="./static/images/codebook_polarity_bars.png" style="margin-top:1.5rem;"
          alt="Panel a: POPE yes-rate before and after L0 ablation for the four capacity settings and the two FSQ configurations. Panel b: codebook mean yes-rate against baseline POPE yes-rate for VILA-U, Liquid and Chameleon.">
     <div class="content has-text-justified" style="margin-top:1.25rem;">
       <p>
@@ -311,12 +317,12 @@
 
     <div class="columns is-vcentered">
       <div class="column is-half">
-        <img src="./static/images/binary_benchmarks.png"
+        <img class="fig" src="./static/images/binary_benchmarks.png"
              alt="POPE and AMBER accuracy for baseline, L0 ablation and tuned DoLA. Tuned DoLA is highest on both.">
         <p class="demo-note has-text-centered">Binary benchmarks. Tuned DoLA wins.</p>
       </div>
       <div class="column is-half">
-        <img src="./static/images/generation_chairi.png"
+        <img class="fig" src="./static/images/generation_chairi.png"
              alt="CHAIRi with image-level confidence intervals for baseline, tuned VCD, tuned DoLA and L0 ablation. Only L0 ablation falls below baseline.">
         <p class="demo-note has-text-centered">
           Open-ended captioning. Only L<sub>0</sub> ablation falls below baseline.
@@ -384,7 +390,6 @@
           <th>CHAIR<sub>i</sub></th>
           <th>Recall</th>
           <th>Avg. length</th>
-          <th>Looping captions</th>
         </tr>
       </thead>
     </table>
@@ -417,39 +422,6 @@
         L<sub>0</sub> ablation collapses them into degenerate emitters, are used as
         gate-level evidence only.
       </p>
-    </div>
-  </div>
-</section>
-
-
-<section class="section" style="padding-top:0;">
-  <div class="container is-max-desktop">
-    <h2 class="title is-3">Limitations</h2>
-    <div class="content has-text-justified">
-      <ul>
-        <li>The reverse-ablation result is an asymmetry at matched budget, not an
-          impossibility. A longer run with the LM unfrozen might in principle reverse the
-          circuit.</li>
-        <li>The polarity association is associational, not causal. The K = 4096 inversion
-          and Chameleon's mildly YES-promoting L<sub>0</sub> lack a mechanistic
-          explanation, and we do not claim that intervening on codebook bias would flip
-          polarity.</li>
-        <li>The circuit topology is shared, but the intervention direction is
-          model-specific: per-model VTI directions have pairwise cosine similarity at most
-          0.054 and must be re-derived per architecture.</li>
-        <li>The sanity criterion excludes Liquid and Anole as practical intervention
-          models. The distributed-head account of the L<sub>0</sub> routing rests on the
-          per-head mass distribution, so that claim is structural rather than causal.</li>
-        <li>The claim that collapse is not necessary rests on a single FSQ model, since
-          FSQ v2 reproduces the polarity inversion but fails A<sub>1</sub> at initiation.</li>
-        <li>The open-ended result rests on VILA-U plus one induced variant whose
-          CHAIR<sub>i</sub> reduction is not significant at the image level, so the
-          significant generative evidence rests on VILA-U alone.</li>
-        <li>The circuit is diagnosed and intervened on only in the understanding pathway.
-          Whether the same snapping-artifact signature degrades autoregressive
-          text-to-image generation, and whether L<sub>0</sub> ablation helps or harms
-          there, is outside the scope of this work.</li>
-      </ul>
     </div>
   </div>
 </section>
